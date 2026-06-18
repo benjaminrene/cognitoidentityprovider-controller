@@ -73,6 +73,7 @@ rules:
   - cognitoidentityprovider.services.k8s.aws
   resources:
   - resourceservers
+  - userpoolclients
   - userpools
   verbs:
   - create
@@ -86,6 +87,7 @@ rules:
   - cognitoidentityprovider.services.k8s.aws
   resources:
   - resourceservers/status
+  - userpoolclients/status
   - userpools/status
   verbs:
   - get

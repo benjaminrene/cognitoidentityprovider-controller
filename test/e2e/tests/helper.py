@@ -36,6 +36,20 @@ class CognitoValidator:
         except self.cognitoidentityprovider_client.exceptions.ResourceNotFoundException:
             return None
 
+    def get_user_pool_client(self, user_pool_id, client_id):
+        try:
+            response = self.cognitoidentityprovider_client.describe_user_pool_client(
+                UserPoolId=user_pool_id,
+                ClientId=client_id,
+            )
+            return response['UserPoolClient']
+        except self.cognitoidentityprovider_client.exceptions.ResourceNotFoundException:
+            return None
+
+    def user_pool_client_exists(self, user_pool_id, client_id):
+        response = self.get_user_pool_client(user_pool_id, client_id)
+        return response is not None
+
     def get_resource_server(self, user_pool_id, identifier):
         try:
             response = self.cognitoidentityprovider_client.describe_resource_server(

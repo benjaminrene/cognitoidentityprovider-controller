@@ -7,12 +7,14 @@ ignore:
       - IdentityProvider
       - ManagedLoginBranding
       - UserImportJob
-      - UserPoolClient
       - UserPoolDomain
   field_paths:
       - PasswordPolicyType.PasswordHistorySize
       - CreateUserPoolInput.UserPoolTier
       - CreateUserPoolOutput.UserPool.UserPoolTier
+      - CreateUserPoolClientOutput.UserPoolClient.ClientSecret
+      - DescribeUserPoolClientOutput.UserPoolClient.ClientSecret
+      - UpdateUserPoolClientOutput.UserPoolClient.ClientSecret
 sdk_names:
   model_name: cognito-identity-provider
 
@@ -47,6 +49,41 @@ resources:
         template_path: hooks/user_pool/sdk_read_one_post_set_output.go.tpl
       sdk_update_pre_build_request:
         template_path: hooks/user_pool/sdk_update_pre_build_request.go.tpl
+  UserPoolClient:
+    exceptions:
+      terminal_codes:
+        - InvalidParameterException
+    tags:
+      ignore: true
+    renames:
+      operations:
+        CreateUserPoolClient:
+          input_fields:
+            ClientName: Name
+            ClientId: Id
+        UpdateUserPoolClient:
+          input_fields:
+            ClientName: Name
+            ClientId: Id
+        DescribeUserPoolClient:
+          input_fields:
+            ClientId: Id
+          output_fields:
+            ClientName: Name
+        DeleteUserPoolClient:
+          input_fields:
+            ClientId: Id
+    fields:
+      Id:
+        is_primary_key: true
+      UserPoolId:
+        is_immutable: true
+        is_required: true
+        references:
+          resource: UserPool
+          path: Status.ID
+      GenerateSecret:
+        is_immutable: true
   ResourceServer:
     exceptions:
       terminal_codes:

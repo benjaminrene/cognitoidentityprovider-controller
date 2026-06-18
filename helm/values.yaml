@@ -152,6 +152,7 @@ reconcile:
   resources:
     - ResourceServer
     - UserPool
+    - UserPoolClient
 
 serviceAccount:
   # Specifies whether a service account should be created

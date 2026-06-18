@@ -1,0 +1,12 @@
+apiVersion: cognitoidentityprovider.services.k8s.aws/v1alpha1
+kind: UserPoolClient
+metadata:
+  name: $USERPOOLCLIENT_NAME
+spec:
+  name: $USERPOOLCLIENT_NAME
+  userPoolRef:
+    from:
+      name: $USERPOOL_NAME
+  explicitAuthFlows:
+    - ALLOW_USER_SRP_AUTH
+    - ALLOW_REFRESH_TOKEN_AUTH

@@ -43,6 +43,7 @@ import (
 
 	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/resource_server"
 	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/user_pool"
+	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/user_pool_client"
 
 	"github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/version"
 )
