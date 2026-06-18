@@ -10,6 +10,7 @@ rules:
   - cognitoidentityprovider.services.k8s.aws
   resources:
   - userpools
+  - userpoolclients
   verbs:
   - get
   - list

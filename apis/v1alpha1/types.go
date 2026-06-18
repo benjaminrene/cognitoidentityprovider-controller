@@ -66,6 +66,7 @@ type AdminCreateUserConfigType struct {
 // and a response parameter of DescribeUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
 type AnalyticsConfigurationType struct {
 	ApplicationARN *string `json:"applicationARN,omitempty"`
+	ApplicationID  *string `json:"applicationID,omitempty"`
 	ExternalID     *string `json:"externalID,omitempty"`
 	RoleARN        *string `json:"roleARN,omitempty"`
 	UserDataShared *bool   `json:"userDataShared,omitempty"`
@@ -343,6 +344,7 @@ type HTTPHeader struct {
 type IdentityProviderType struct {
 	CreationDate     *metav1.Time `json:"creationDate,omitempty"`
 	LastModifiedDate *metav1.Time `json:"lastModifiedDate,omitempty"`
+	ProviderName     *string      `json:"providerName,omitempty"`
 	UserPoolID       *string      `json:"userPoolID,omitempty"`
 }
 
@@ -484,6 +486,7 @@ type PreTokenGenerationVersionConfigType struct {
 type ProviderDescription struct {
 	CreationDate     *metav1.Time `json:"creationDate,omitempty"`
 	LastModifiedDate *metav1.Time `json:"lastModifiedDate,omitempty"`
+	ProviderName     *string      `json:"providerName,omitempty"`
 }
 
 // The characteristics of a source or destination user for linking a federated
@@ -494,6 +497,7 @@ type ProviderDescription struct {
 type ProviderUserIdentifierType struct {
 	ProviderAttributeName  *string `json:"providerAttributeName,omitempty"`
 	ProviderAttributeValue *string `json:"providerAttributeValue,omitempty"`
+	ProviderName           *string `json:"providerName,omitempty"`
 }
 
 // A recovery option for a user. The AccountRecoverySettingType data type is
@@ -529,6 +533,7 @@ type ResourceServerType struct {
 // This data type is a response parameter of DescribeRiskConfiguration (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeRiskConfiguration.html)
 // and SetRiskConfiguration (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_SetRiskConfiguration.html).
 type RiskConfigurationType struct {
+	ClientID         *string      `json:"clientID,omitempty"`
 	LastModifiedDate *metav1.Time `json:"lastModifiedDate,omitempty"`
 	UserPoolID       *string      `json:"userPoolID,omitempty"`
 }
@@ -660,11 +665,25 @@ type StringAttributeConstraintsType struct {
 	MinLength *string `json:"minLength,omitempty"`
 }
 
+// The time units that, with IdTokenValidity, AccessTokenValidity, and RefreshTokenValidity,
+// set and display the duration of ID, access, and refresh tokens for an app
+// client. You can assign a separate token validity unit to each type of token.
+//
+// This data type is a request parameter of CreateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html)
+// and UpdateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_UpdateUserPoolClient.html),
+// and a response parameter of DescribeUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
+type TokenValidityUnitsType struct {
+	AccessToken  *string `json:"accessToken,omitempty"`
+	IDToken      *string `json:"idToken,omitempty"`
+	RefreshToken *string `json:"refreshToken,omitempty"`
+}
+
 // A container for the UI customization information for the hosted UI in a user
 // pool.
 //
 // This data type is a response parameter of GetUICustomization (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
 type UICustomizationType struct {
+	ClientID         *string      `json:"clientID,omitempty"`
 	CreationDate     *metav1.Time `json:"creationDate,omitempty"`
 	LastModifiedDate *metav1.Time `json:"lastModifiedDate,omitempty"`
 	UserPoolID       *string      `json:"userPoolID,omitempty"`
@@ -730,6 +749,8 @@ type UserPoolAddOnsType struct {
 //
 // This data type is a response parameter of ListUserPoolClients (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_ListUserPoolClients.html).
 type UserPoolClientDescription struct {
+	ClientID   *string `json:"clientID,omitempty"`
+	ClientName *string `json:"clientName,omitempty"`
 	UserPoolID *string `json:"userPoolID,omitempty"`
 }
 
@@ -739,12 +760,49 @@ type UserPoolClientDescription struct {
 // and UpdateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_UpdateUserPoolClient.html),
 // and a response parameter of DescribeUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
 type UserPoolClientType struct {
-	AllowedOAuthFlowsUserPoolClient          *bool        `json:"allowedOAuthFlowsUserPoolClient,omitempty"`
-	CreationDate                             *metav1.Time `json:"creationDate,omitempty"`
-	EnablePropagateAdditionalUserContextData *bool        `json:"enablePropagateAdditionalUserContextData,omitempty"`
-	EnableTokenRevocation                    *bool        `json:"enableTokenRevocation,omitempty"`
-	LastModifiedDate                         *metav1.Time `json:"lastModifiedDate,omitempty"`
-	UserPoolID                               *string      `json:"userPoolID,omitempty"`
+	AccessTokenValidity             *int64    `json:"accessTokenValidity,omitempty"`
+	AllowedOAuthFlows               []*string `json:"allowedOAuthFlows,omitempty"`
+	AllowedOAuthFlowsUserPoolClient *bool     `json:"allowedOAuthFlowsUserPoolClient,omitempty"`
+	AllowedOAuthScopes              []*string `json:"allowedOAuthScopes,omitempty"`
+	// The settings for Amazon Pinpoint analytics configuration. With an analytics
+	// configuration, your application can collect user-activity metrics for user
+	// notifications with a Amazon Pinpoint campaign.
+	//
+	// Amazon Pinpoint isn't available in all Amazon Web Services Regions. For a
+	// list of available Regions, see Amazon Cognito and Amazon Pinpoint Region
+	// availability (https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-pinpoint-integration.html#cognito-user-pools-find-region-mappings).
+	//
+	// This data type is a request parameter of CreateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html)
+	// and UpdateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_UpdateUserPoolClient.html),
+	// and a response parameter of DescribeUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
+	AnalyticsConfiguration                   *AnalyticsConfigurationType `json:"analyticsConfiguration,omitempty"`
+	AuthSessionValidity                      *int64                      `json:"authSessionValidity,omitempty"`
+	CallbackURLs                             []*string                   `json:"callbackURLs,omitempty"`
+	ClientID                                 *string                     `json:"clientID,omitempty"`
+	ClientName                               *string                     `json:"clientName,omitempty"`
+	ClientSecret                             *string                     `json:"clientSecret,omitempty"`
+	CreationDate                             *metav1.Time                `json:"creationDate,omitempty"`
+	DefaultRedirectURI                       *string                     `json:"defaultRedirectURI,omitempty"`
+	EnablePropagateAdditionalUserContextData *bool                       `json:"enablePropagateAdditionalUserContextData,omitempty"`
+	EnableTokenRevocation                    *bool                       `json:"enableTokenRevocation,omitempty"`
+	ExplicitAuthFlows                        []*string                   `json:"explicitAuthFlows,omitempty"`
+	IDTokenValidity                          *int64                      `json:"idTokenValidity,omitempty"`
+	LastModifiedDate                         *metav1.Time                `json:"lastModifiedDate,omitempty"`
+	LogoutURLs                               []*string                   `json:"logoutURLs,omitempty"`
+	PreventUserExistenceErrors               *string                     `json:"preventUserExistenceErrors,omitempty"`
+	ReadAttributes                           []*string                   `json:"readAttributes,omitempty"`
+	RefreshTokenValidity                     *int64                      `json:"refreshTokenValidity,omitempty"`
+	SupportedIdentityProviders               []*string                   `json:"supportedIdentityProviders,omitempty"`
+	// The time units that, with IdTokenValidity, AccessTokenValidity, and RefreshTokenValidity,
+	// set and display the duration of ID, access, and refresh tokens for an app
+	// client. You can assign a separate token validity unit to each type of token.
+	//
+	// This data type is a request parameter of CreateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html)
+	// and UpdateUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_UpdateUserPoolClient.html),
+	// and a response parameter of DescribeUserPoolClient (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeUserPoolClient.html).
+	TokenValidityUnits *TokenValidityUnitsType `json:"tokenValidityUnits,omitempty"`
+	UserPoolID         *string                 `json:"userPoolID,omitempty"`
+	WriteAttributes    []*string               `json:"writeAttributes,omitempty"`
 }
 
 // A short description of a user pool.

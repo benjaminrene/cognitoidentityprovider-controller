@@ -40,6 +40,7 @@ import (
 	svcresource "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource"
 
 	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/user_pool"
+	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/user_pool_client"
 
 	"github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/version"
 )

@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - common
   - bases/cognitoidentityprovider.services.k8s.aws_userpools.yaml
+  - bases/cognitoidentityprovider.services.k8s.aws_userpoolclients.yaml
