@@ -184,6 +184,8 @@ type UserPoolClientSpec struct {
 	// to user pool clients at the same time as values that begin with ALLOW_,like
 	// ALLOW_USER_SRP_AUTH.
 	ExplicitAuthFlows []*string `json:"explicitAuthFlows,omitempty"`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+	ExportClientSecret *ackv1alpha1.SecretKeyReference `json:"exportClientSecret,omitempty"`
 	// Boolean to specify whether you want to generate a secret for the user pool
 	// client being created.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
@@ -316,21 +318,16 @@ type UserPoolClientStatus struct {
 	// resource
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
-	// The ID of the app client.
-	//
-	// Regex Pattern: `^[\w+]+$`
-	// +kubebuilder:validation:Optional
-	ClientID *string `json:"clientID,omitempty"`
-	// The app client secret.
-	//
-	// Regex Pattern: `^[\w+]+$`
-	// +kubebuilder:validation:Optional
-	ClientSecret *string `json:"clientSecret,omitempty"`
 	// The date and time when the item was created. Amazon Cognito returns this
 	// timestamp in UNIX epoch time format. Your SDK might render the output in
 	// a human-readable format like ISO 8601 or a Java Date object.
 	// +kubebuilder:validation:Optional
 	CreationDate *metav1.Time `json:"creationDate,omitempty"`
+	// The ID of the app client.
+	//
+	// Regex Pattern: `^[\w+]+$`
+	// +kubebuilder:validation:Optional
+	ID *string `json:"id,omitempty"`
 	// The date and time when the item was modified. Amazon Cognito returns this
 	// timestamp in UNIX epoch time format. Your SDK might render the output in
 	// a human-readable format like ISO 8601 or a Java Date object.

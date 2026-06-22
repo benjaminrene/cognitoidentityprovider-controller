@@ -13,6 +13,9 @@ ignore:
       - PasswordPolicyType.PasswordHistorySize
       - CreateUserPoolInput.UserPoolTier
       - CreateUserPoolOutput.UserPool.UserPoolTier
+      - CreateUserPoolClientOutput.UserPoolClient.ClientSecret
+      - DescribeUserPoolClientOutput.UserPoolClient.ClientSecret
+      - UpdateUserPoolClientOutput.UserPoolClient.ClientSecret
 sdk_names:
   model_name: cognito-identity-provider
 
@@ -53,16 +56,29 @@ resources:
         - InvalidParameterException
     tags:
       ignore: true
+    hooks:
+      sdk_create_post_set_output:
+        template_path: hooks/user_pool_client/sdk_create_post_set_output.go.tpl
+      sdk_read_one_post_set_output:
+        template_path: hooks/user_pool_client/sdk_read_one_post_set_output.go.tpl
     renames:
       operations:
         CreateUserPoolClient:
           input_fields:
             ClientName: Name
+            ClientId: Id
         UpdateUserPoolClient:
           input_fields:
             ClientName: Name
+            ClientId: Id
+        DescribeUserPoolClient:
+          input_fields:
+            ClientId: Id
+        DeleteUserPoolClient:
+          input_fields:
+            ClientId: Id
     fields:
-      ClientId:
+      Id:
         is_primary_key: true
       UserPoolId:
         is_immutable: true
@@ -72,5 +88,9 @@ resources:
           path: Status.ID
       GenerateSecret:
         is_immutable: true
-      ClientSecret:
+      ExportClientSecret:
+        type: string
         is_immutable: true
+        is_secret: true
+        compare:
+          is_ignored: true

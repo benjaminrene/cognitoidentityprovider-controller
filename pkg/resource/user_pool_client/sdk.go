@@ -149,14 +149,9 @@ func (rm *resourceManager) sdkFind(
 		ko.Spec.CallbackURLs = nil
 	}
 	if resp.UserPoolClient.ClientId != nil {
-		ko.Status.ClientID = resp.UserPoolClient.ClientId
+		ko.Status.ID = resp.UserPoolClient.ClientId
 	} else {
-		ko.Status.ClientID = nil
-	}
-	if resp.UserPoolClient.ClientSecret != nil {
-		ko.Status.ClientSecret = resp.UserPoolClient.ClientSecret
-	} else {
-		ko.Status.ClientSecret = nil
+		ko.Status.ID = nil
 	}
 	if resp.UserPoolClient.CreationDate != nil {
 		ko.Status.CreationDate = &metav1.Time{*resp.UserPoolClient.CreationDate}
@@ -179,13 +174,13 @@ func (rm *resourceManager) sdkFind(
 		ko.Spec.EnableTokenRevocation = nil
 	}
 	if resp.UserPoolClient.ExplicitAuthFlows != nil {
-		f14 := []*string{}
-		for _, f14iter := range resp.UserPoolClient.ExplicitAuthFlows {
-			var f14elem *string
-			f14elem = aws.String(string(f14iter))
-			f14 = append(f14, f14elem)
+		f13 := []*string{}
+		for _, f13iter := range resp.UserPoolClient.ExplicitAuthFlows {
+			var f13elem *string
+			f13elem = aws.String(string(f13iter))
+			f13 = append(f13, f13elem)
 		}
-		ko.Spec.ExplicitAuthFlows = f14
+		ko.Spec.ExplicitAuthFlows = f13
 	} else {
 		ko.Spec.ExplicitAuthFlows = nil
 	}
@@ -223,17 +218,17 @@ func (rm *resourceManager) sdkFind(
 		ko.Spec.SupportedIdentityProviders = nil
 	}
 	if resp.UserPoolClient.TokenValidityUnits != nil {
-		f22 := &svcapitypes.TokenValidityUnitsType{}
+		f21 := &svcapitypes.TokenValidityUnitsType{}
 		if resp.UserPoolClient.TokenValidityUnits.AccessToken != "" {
-			f22.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
+			f21.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.IdToken != "" {
-			f22.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
+			f21.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.RefreshToken != "" {
-			f22.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
+			f21.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
 		}
-		ko.Spec.TokenValidityUnits = f22
+		ko.Spec.TokenValidityUnits = f21
 	} else {
 		ko.Spec.TokenValidityUnits = nil
 	}
@@ -249,6 +244,16 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
+	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil {
+		namespace := ko.Namespace
+		if ko.Spec.ExportClientSecret.Namespace != "" {
+			namespace = ko.Spec.ExportClientSecret.Namespace
+		}
+		if err = rm.rr.WriteToSecret(ctx, *resp.UserPoolClient.ClientSecret, namespace, ko.Spec.ExportClientSecret.Name, ko.Spec.ExportClientSecret.Key); err != nil {
+			return nil, err
+		}
+	}
+
 	return &resource{ko}, nil
 }
 
@@ -258,7 +263,7 @@ func (rm *resourceManager) sdkFind(
 func (rm *resourceManager) requiredFieldsMissingFromReadOneInput(
 	r *resource,
 ) bool {
-	return r.ko.Status.ClientID == nil || r.ko.Spec.UserPoolID == nil
+	return r.ko.Status.ID == nil || r.ko.Spec.UserPoolID == nil
 
 }
 
@@ -269,8 +274,8 @@ func (rm *resourceManager) newDescribeRequestPayload(
 ) (*svcsdk.DescribeUserPoolClientInput, error) {
 	res := &svcsdk.DescribeUserPoolClientInput{}
 
-	if r.ko.Status.ClientID != nil {
-		res.ClientId = r.ko.Status.ClientID
+	if r.ko.Status.ID != nil {
+		res.ClientId = r.ko.Status.ID
 	}
 	if r.ko.Spec.UserPoolID != nil {
 		res.UserPoolId = r.ko.Spec.UserPoolID
@@ -365,19 +370,14 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.CallbackURLs = nil
 	}
 	if resp.UserPoolClient.ClientId != nil {
-		ko.Status.ClientID = resp.UserPoolClient.ClientId
+		ko.Status.ID = resp.UserPoolClient.ClientId
 	} else {
-		ko.Status.ClientID = nil
+		ko.Status.ID = nil
 	}
 	if resp.UserPoolClient.ClientName != nil {
 		ko.Spec.Name = resp.UserPoolClient.ClientName
 	} else {
 		ko.Spec.Name = nil
-	}
-	if resp.UserPoolClient.ClientSecret != nil {
-		ko.Status.ClientSecret = resp.UserPoolClient.ClientSecret
-	} else {
-		ko.Status.ClientSecret = nil
 	}
 	if resp.UserPoolClient.CreationDate != nil {
 		ko.Status.CreationDate = &metav1.Time{*resp.UserPoolClient.CreationDate}
@@ -400,13 +400,13 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.EnableTokenRevocation = nil
 	}
 	if resp.UserPoolClient.ExplicitAuthFlows != nil {
-		f14 := []*string{}
-		for _, f14iter := range resp.UserPoolClient.ExplicitAuthFlows {
-			var f14elem *string
-			f14elem = aws.String(string(f14iter))
-			f14 = append(f14, f14elem)
+		f13 := []*string{}
+		for _, f13iter := range resp.UserPoolClient.ExplicitAuthFlows {
+			var f13elem *string
+			f13elem = aws.String(string(f13iter))
+			f13 = append(f13, f13elem)
 		}
-		ko.Spec.ExplicitAuthFlows = f14
+		ko.Spec.ExplicitAuthFlows = f13
 	} else {
 		ko.Spec.ExplicitAuthFlows = nil
 	}
@@ -444,17 +444,17 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.SupportedIdentityProviders = nil
 	}
 	if resp.UserPoolClient.TokenValidityUnits != nil {
-		f22 := &svcapitypes.TokenValidityUnitsType{}
+		f21 := &svcapitypes.TokenValidityUnitsType{}
 		if resp.UserPoolClient.TokenValidityUnits.AccessToken != "" {
-			f22.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
+			f21.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.IdToken != "" {
-			f22.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
+			f21.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.RefreshToken != "" {
-			f22.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
+			f21.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
 		}
-		ko.Spec.TokenValidityUnits = f22
+		ko.Spec.TokenValidityUnits = f21
 	} else {
 		ko.Spec.TokenValidityUnits = nil
 	}
@@ -470,6 +470,16 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
+	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil {
+		namespace := ko.Namespace
+		if ko.Spec.ExportClientSecret.Namespace != "" {
+			namespace = ko.Spec.ExportClientSecret.Namespace
+		}
+		if err = rm.rr.WriteToSecret(ctx, *resp.UserPoolClient.ClientSecret, namespace, ko.Spec.ExportClientSecret.Name, ko.Spec.ExportClientSecret.Key); err != nil {
+			return nil, err
+		}
+	}
+
 	return &resource{ko}, nil
 }
 
@@ -696,19 +706,14 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.CallbackURLs = nil
 	}
 	if resp.UserPoolClient.ClientId != nil {
-		ko.Status.ClientID = resp.UserPoolClient.ClientId
+		ko.Status.ID = resp.UserPoolClient.ClientId
 	} else {
-		ko.Status.ClientID = nil
+		ko.Status.ID = nil
 	}
 	if resp.UserPoolClient.ClientName != nil {
 		ko.Spec.Name = resp.UserPoolClient.ClientName
 	} else {
 		ko.Spec.Name = nil
-	}
-	if resp.UserPoolClient.ClientSecret != nil {
-		ko.Status.ClientSecret = resp.UserPoolClient.ClientSecret
-	} else {
-		ko.Status.ClientSecret = nil
 	}
 	if resp.UserPoolClient.CreationDate != nil {
 		ko.Status.CreationDate = &metav1.Time{*resp.UserPoolClient.CreationDate}
@@ -731,13 +736,13 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.EnableTokenRevocation = nil
 	}
 	if resp.UserPoolClient.ExplicitAuthFlows != nil {
-		f14 := []*string{}
-		for _, f14iter := range resp.UserPoolClient.ExplicitAuthFlows {
-			var f14elem *string
-			f14elem = aws.String(string(f14iter))
-			f14 = append(f14, f14elem)
+		f13 := []*string{}
+		for _, f13iter := range resp.UserPoolClient.ExplicitAuthFlows {
+			var f13elem *string
+			f13elem = aws.String(string(f13iter))
+			f13 = append(f13, f13elem)
 		}
-		ko.Spec.ExplicitAuthFlows = f14
+		ko.Spec.ExplicitAuthFlows = f13
 	} else {
 		ko.Spec.ExplicitAuthFlows = nil
 	}
@@ -775,17 +780,17 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.SupportedIdentityProviders = nil
 	}
 	if resp.UserPoolClient.TokenValidityUnits != nil {
-		f22 := &svcapitypes.TokenValidityUnitsType{}
+		f21 := &svcapitypes.TokenValidityUnitsType{}
 		if resp.UserPoolClient.TokenValidityUnits.AccessToken != "" {
-			f22.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
+			f21.AccessToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.AccessToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.IdToken != "" {
-			f22.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
+			f21.IDToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.IdToken))
 		}
 		if resp.UserPoolClient.TokenValidityUnits.RefreshToken != "" {
-			f22.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
+			f21.RefreshToken = aws.String(string(resp.UserPoolClient.TokenValidityUnits.RefreshToken))
 		}
-		ko.Spec.TokenValidityUnits = f22
+		ko.Spec.TokenValidityUnits = f21
 	} else {
 		ko.Spec.TokenValidityUnits = nil
 	}
@@ -866,8 +871,8 @@ func (rm *resourceManager) newUpdateRequestPayload(
 	if r.ko.Spec.CallbackURLs != nil {
 		res.CallbackURLs = aws.ToStringSlice(r.ko.Spec.CallbackURLs)
 	}
-	if r.ko.Status.ClientID != nil {
-		res.ClientId = r.ko.Status.ClientID
+	if r.ko.Status.ID != nil {
+		res.ClientId = r.ko.Status.ID
 	}
 	if r.ko.Spec.Name != nil {
 		res.ClientName = r.ko.Spec.Name
@@ -969,8 +974,8 @@ func (rm *resourceManager) newDeleteRequestPayload(
 ) (*svcsdk.DeleteUserPoolClientInput, error) {
 	res := &svcsdk.DeleteUserPoolClientInput{}
 
-	if r.ko.Status.ClientID != nil {
-		res.ClientId = r.ko.Status.ClientID
+	if r.ko.Status.ID != nil {
+		res.ClientId = r.ko.Status.ID
 	}
 	if r.ko.Spec.UserPoolID != nil {
 		res.UserPoolId = r.ko.Spec.UserPoolID

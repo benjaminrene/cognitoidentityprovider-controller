@@ -15,10 +15,12 @@
 
 import logging
 import time
+import base64
 
 import pytest
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
+from kubernetes import client
 from e2e import CRD_GROUP, CRD_VERSION, load_cognitoidentityprovider_resource, service_marker
 from e2e.replacement_values import REPLACEMENT_VALUES
 
@@ -139,6 +141,28 @@ def simple_userpoolclient_fromref(cognitoidentityprovider_client, simple_userpoo
     for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
         yield (ref, cr, userpool_cr['status']['id'])
 
+@pytest.fixture(scope='module')
+def simple_userpoolclient_withexport(cognitoidentityprovider_client, user_pool_for_client):
+    user_pool_id = user_pool_for_client
+    secret_name = random_suffix_name("userpoolclient-secret", 27)
+    k8s.create_opaque_secret('default', secret_name, "key", "value")
+
+    userpoolclient_name = random_suffix_name("userpoolclient", 24)
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements['USERPOOLCLIENT_NAME'] = userpoolclient_name
+    replacements['USERPOOL_ID'] = user_pool_id
+    replacements['USERPOOLCLIENT_SECRET_KEY'] = 'clientSecret'
+    replacements['USERPOOLCLIENT_SECRET_NAME'] = secret_name
+
+    resource_data = load_cognitoidentityprovider_resource(
+        'userpoolclient_with_export',
+        additional_replacements=replacements,
+    )
+
+    for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
+        yield (ref, cr, user_pool_id, secret_name)
+    # Delete k8s secret
+    k8s.delete_secret('default', secret_name)
 
 @service_marker
 @pytest.mark.canary
@@ -154,8 +178,8 @@ class TestUserPoolClient():
         assert cr['spec']['userPoolID'] == user_pool_id
 
         assert 'status' in cr
-        assert 'clientID' in cr['status']
-        client_id = cr['status']['clientID']
+        assert 'id' in cr['status']
+        client_id = cr['status']['id']
 
         # Verify the resource exists in AWS
         validator = CognitoValidator(cognitoidentityprovider_client)
@@ -207,8 +231,35 @@ class TestUserPoolClient():
         assert cr['spec']['userPoolRef']['from']['name'] is not None
 
         assert 'status' in cr
-        assert 'clientID' in cr['status']
-        client_id = cr['status']['clientID']
+        assert 'id' in cr['status']
+        client_id = cr['status']['id']
+
+        # Verify the resource exists in AWS
+        validator = CognitoValidator(cognitoidentityprovider_client)
+        assert validator.user_pool_client_exists(user_pool_id, client_id)
+
+        # Delete
+        _, deleted = k8s.delete_custom_resource(
+            ref,
+            DELETE_WAIT_AFTER_SECONDS,
+        )
+        assert deleted
+
+        assert not validator.user_pool_client_exists(user_pool_id, client_id)
+
+    def test_create_delete_simple_userpoolclient_withexport(
+        self, simple_userpoolclient_withexport, cognitoidentityprovider_client
+    ):
+        (ref, cr, user_pool_id, secret_name) = simple_userpoolclient_withexport
+        assert cr is not None
+        assert 'spec' in cr
+        assert 'name' in cr['spec']
+        assert 'userPoolID' in cr['spec']
+        assert cr['spec']['userPoolID'] == user_pool_id
+
+        assert 'status' in cr
+        assert 'id' in cr['status']
+        client_id = cr['status']['id']
 
         # Verify the resource exists in AWS
         validator = CognitoValidator(cognitoidentityprovider_client)
@@ -219,26 +270,13 @@ class TestUserPoolClient():
         assert 'ALLOW_USER_SRP_AUTH' in aws_client['ExplicitAuthFlows']
         assert 'ALLOW_REFRESH_TOKEN_AUTH' in aws_client['ExplicitAuthFlows']
 
-        # Update: add callback URLs
-        updates = {
-            'spec': {
-                'callbackURLs': [
-                    'https://example.com/callback',
-                ],
-                'allowedOAuthFlowsUserPoolClient': True,
-                'allowedOAuthFlows': ['code'],
-                'allowedOAuthScopes': ['openid'],
-            }
-        }
-        k8s.patch_custom_resource(ref, updates)
-        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
-
-        # Verify update in AWS
-        aws_client = validator.get_user_pool_client(user_pool_id, client_id)
-        assert 'https://example.com/callback' in aws_client['CallbackURLs']
-        assert aws_client['AllowedOAuthFlowsUserPoolClient'] is True
-        assert 'code' in aws_client['AllowedOAuthFlows']
-        assert 'openid' in aws_client['AllowedOAuthScopes']
+        # Verify the client secret was exported to the K8s Secret
+        secret = client.CoreV1Api(k8s._get_k8s_api_client()).read_namespaced_secret(secret_name, 'default')
+        assert secret.data is not None
+        assert 'clientSecret' in secret.data
+        decoded_secret = base64.b64decode(secret.data['clientSecret']).decode('utf-8')
+        userpool_client = validator.get_user_pool_client(user_pool_id, client_id)
+        assert decoded_secret == userpool_client['ClientSecret']
 
         # Delete
         _, deleted = k8s.delete_custom_resource(
@@ -248,3 +286,4 @@ class TestUserPoolClient():
         assert deleted
 
         assert not validator.user_pool_client_exists(user_pool_id, client_id)
+

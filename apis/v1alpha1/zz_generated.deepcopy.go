@@ -1715,6 +1715,11 @@ func (in *UserPoolClientSpec) DeepCopyInto(out *UserPoolClientSpec) {
 			}
 		}
 	}
+	if in.ExportClientSecret != nil {
+		in, out := &in.ExportClientSecret, &out.ExportClientSecret
+		*out = new(corev1alpha1.SecretKeyReference)
+		**out = **in
+	}
 	if in.GenerateSecret != nil {
 		in, out := &in.GenerateSecret, &out.GenerateSecret
 		*out = new(bool)
@@ -1830,19 +1835,14 @@ func (in *UserPoolClientStatus) DeepCopyInto(out *UserPoolClientStatus) {
 			}
 		}
 	}
-	if in.ClientID != nil {
-		in, out := &in.ClientID, &out.ClientID
-		*out = new(string)
-		**out = **in
-	}
-	if in.ClientSecret != nil {
-		in, out := &in.ClientSecret, &out.ClientSecret
-		*out = new(string)
-		**out = **in
-	}
 	if in.CreationDate != nil {
 		in, out := &in.CreationDate, &out.CreationDate
 		*out = (*in).DeepCopy()
+	}
+	if in.ID != nil {
+		in, out := &in.ID, &out.ID
+		*out = new(string)
+		**out = **in
 	}
 	if in.LastModifiedDate != nil {
 		in, out := &in.LastModifiedDate, &out.LastModifiedDate
@@ -1923,11 +1923,6 @@ func (in *UserPoolClientType) DeepCopyInto(out *UserPoolClientType) {
 	}
 	if in.ClientName != nil {
 		in, out := &in.ClientName, &out.ClientName
-		*out = new(string)
-		**out = **in
-	}
-	if in.ClientSecret != nil {
-		in, out := &in.ClientSecret, &out.ClientSecret
 		*out = new(string)
 		**out = **in
 	}

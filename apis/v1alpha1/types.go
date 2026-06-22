@@ -780,7 +780,6 @@ type UserPoolClientType struct {
 	CallbackURLs                             []*string                   `json:"callbackURLs,omitempty"`
 	ClientID                                 *string                     `json:"clientID,omitempty"`
 	ClientName                               *string                     `json:"clientName,omitempty"`
-	ClientSecret                             *string                     `json:"clientSecret,omitempty"`
 	CreationDate                             *metav1.Time                `json:"creationDate,omitempty"`
 	DefaultRedirectURI                       *string                     `json:"defaultRedirectURI,omitempty"`
 	EnablePropagateAdditionalUserContextData *bool                       `json:"enablePropagateAdditionalUserContextData,omitempty"`

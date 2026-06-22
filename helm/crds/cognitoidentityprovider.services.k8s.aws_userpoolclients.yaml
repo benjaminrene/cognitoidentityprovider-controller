@@ -243,6 +243,29 @@ spec:
                 items:
                   type: string
                 type: array
+              exportClientSecret:
+                description: |-
+                  SecretKeyReference combines a k8s corev1.SecretReference with a
+                  specific key within the referred-to Secret
+                properties:
+                  key:
+                    description: Key is the key within the secret
+                    type: string
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
               generateSecret:
                 description: |-
                   Boolean to specify whether you want to generate a secret for the user pool
@@ -456,18 +479,6 @@ spec:
                 - ownerAccountID
                 - region
                 type: object
-              clientID:
-                description: |-
-                  The ID of the app client.
-
-                  Regex Pattern: `^[\w+]+$`
-                type: string
-              clientSecret:
-                description: |-
-                  The app client secret.
-
-                  Regex Pattern: `^[\w+]+$`
-                type: string
               conditions:
                 description: |-
                   All CRs managed by ACK have a common `Status.Conditions` member that
@@ -509,6 +520,12 @@ spec:
                   timestamp in UNIX epoch time format. Your SDK might render the output in
                   a human-readable format like ISO 8601 or a Java Date object.
                 format: date-time
+                type: string
+              id:
+                description: |-
+                  The ID of the app client.
+
+                  Regex Pattern: `^[\w+]+$`
                 type: string
               lastModifiedDate:
                 description: |-
