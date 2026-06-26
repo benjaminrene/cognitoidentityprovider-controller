@@ -74,6 +74,7 @@ resources:
         DescribeUserPoolClient:
           input_fields:
             ClientId: Id
+          output_fields:
             ClientName: Name
         DeleteUserPoolClient:
           input_fields:
