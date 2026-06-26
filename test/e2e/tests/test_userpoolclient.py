@@ -278,6 +278,25 @@ class TestUserPoolClient():
         userpool_client = validator.get_user_pool_client(user_pool_id, client_id)
         assert decoded_secret == userpool_client['ClientSecret']
 
+        # Create a new secret and modify UserPoolClient to use the new secret
+        moved_secret_name = random_suffix_name("userpoolclient-secret", 27)
+        k8s.create_opaque_secret('default', moved_secret_name, "key", "value")
+
+        updates = {
+            'spec': {
+                'exportClientSecret': {
+                    'name': moved_secret_name
+                }
+            }
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+        moved_secret = client.CoreV1Api(k8s._get_k8s_api_client()).read_namespaced_secret(moved_secret_name, 'default')
+        assert moved_secret.data is not None
+        assert 'clientSecret' in moved_secret.data
+        moved_decoded_secret = base64.b64decode(moved_secret.data['clientSecret']).decode('utf-8')
+        assert moved_decoded_secret == userpool_client['ClientSecret']
+
         # Delete
         _, deleted = k8s.delete_custom_resource(
             ref,

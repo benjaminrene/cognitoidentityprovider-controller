@@ -74,6 +74,7 @@ resources:
         DescribeUserPoolClient:
           input_fields:
             ClientId: Id
+            ClientName: Name
         DeleteUserPoolClient:
           input_fields:
             ClientId: Id
@@ -90,7 +91,4 @@ resources:
         is_immutable: true
       ExportClientSecret:
         type: string
-        is_immutable: true
         is_secret: true
-        compare:
-          is_ignored: true

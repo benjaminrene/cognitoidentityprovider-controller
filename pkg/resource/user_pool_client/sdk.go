@@ -153,6 +153,11 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Status.ID = nil
 	}
+	if resp.UserPoolClient.ClientName != nil {
+		ko.Spec.Name = resp.UserPoolClient.ClientName
+	} else {
+		ko.Spec.Name = nil
+	}
 	if resp.UserPoolClient.CreationDate != nil {
 		ko.Status.CreationDate = &metav1.Time{*resp.UserPoolClient.CreationDate}
 	} else {
@@ -244,13 +249,14 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
-	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil {
+	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil &&
+		(ko.Status.LastModifiedDate == nil || resp.UserPoolClient.LastModifiedDate == nil || ko.Status.LastModifiedDate.Time.Equal(*resp.UserPoolClient.LastModifiedDate)) {
 		namespace := ko.Namespace
 		if ko.Spec.ExportClientSecret.Namespace != "" {
 			namespace = ko.Spec.ExportClientSecret.Namespace
 		}
 		if err = rm.rr.WriteToSecret(ctx, *resp.UserPoolClient.ClientSecret, namespace, ko.Spec.ExportClientSecret.Name, ko.Spec.ExportClientSecret.Key); err != nil {
-			return nil, err
+			return &resource{ko}, err
 		}
 	}
 
@@ -470,13 +476,14 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
-	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil {
+	if ko.Spec.ExportClientSecret != nil && resp.UserPoolClient.ClientSecret != nil &&
+		(ko.Status.LastModifiedDate == nil || resp.UserPoolClient.LastModifiedDate == nil || ko.Status.LastModifiedDate.Time.Equal(*resp.UserPoolClient.LastModifiedDate)) {
 		namespace := ko.Namespace
 		if ko.Spec.ExportClientSecret.Namespace != "" {
 			namespace = ko.Spec.ExportClientSecret.Namespace
 		}
 		if err = rm.rr.WriteToSecret(ctx, *resp.UserPoolClient.ClientSecret, namespace, ko.Spec.ExportClientSecret.Name, ko.Spec.ExportClientSecret.Key); err != nil {
-			return nil, err
+			return &resource{ko}, err
 		}
 	}
 

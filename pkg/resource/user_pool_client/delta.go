@@ -151,6 +151,13 @@ func newResourceDelta(
 			delta.Add("Spec.ExplicitAuthFlows", a.ko.Spec.ExplicitAuthFlows, b.ko.Spec.ExplicitAuthFlows)
 		}
 	}
+	if ackcompare.HasNilDifference(a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret) {
+		delta.Add("Spec.ExportClientSecret", a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret)
+	} else if a.ko.Spec.ExportClientSecret != nil && b.ko.Spec.ExportClientSecret != nil {
+		if *a.ko.Spec.ExportClientSecret != *b.ko.Spec.ExportClientSecret {
+			delta.Add("Spec.ExportClientSecret", a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret)
+		}
+	}
 	if ackcompare.HasNilDifference(a.ko.Spec.GenerateSecret, b.ko.Spec.GenerateSecret) {
 		delta.Add("Spec.GenerateSecret", a.ko.Spec.GenerateSecret, b.ko.Spec.GenerateSecret)
 	} else if a.ko.Spec.GenerateSecret != nil && b.ko.Spec.GenerateSecret != nil {

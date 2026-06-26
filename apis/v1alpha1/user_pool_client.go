@@ -183,8 +183,7 @@ type UserPoolClientSpec struct {
 	// or USER_PASSWORD_AUTH. You can't assign these legacy ExplicitAuthFlows values
 	// to user pool clients at the same time as values that begin with ALLOW_,like
 	// ALLOW_USER_SRP_AUTH.
-	ExplicitAuthFlows []*string `json:"explicitAuthFlows,omitempty"`
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+	ExplicitAuthFlows  []*string                       `json:"explicitAuthFlows,omitempty"`
 	ExportClientSecret *ackv1alpha1.SecretKeyReference `json:"exportClientSecret,omitempty"`
 	// Boolean to specify whether you want to generate a secret for the user pool
 	// client being created.
