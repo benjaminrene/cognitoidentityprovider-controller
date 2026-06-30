@@ -249,7 +249,7 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
-	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient); err != nil {
+	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient, r.ko.Status.LastModifiedDate); err != nil {
 		return &resource{ko}, err
 	}
 
@@ -469,7 +469,7 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
-	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient); err != nil {
+	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient, nil); err != nil {
 		return &resource{ko}, err
 	}
 

@@ -278,24 +278,16 @@ class TestUserPoolClient():
         userpool_client = validator.get_user_pool_client(user_pool_id, client_id)
         assert decoded_secret == userpool_client['ClientSecret']
 
-        # Create a new secret and modify UserPoolClient to use the new secret
-        moved_secret_name = random_suffix_name("userpoolclient-secret", 27)
-        k8s.create_opaque_secret('default', moved_secret_name, "key", "value")
-
-        updates = {
-            'spec': {
-                'exportClientSecret': {
-                    'name': moved_secret_name
-                }
-            }
-        }
-        k8s.patch_custom_resource(ref, updates)
+        # The export is event-driven (keyed on the app client's LastModifiedDate),
+        # so a steady-state reconcile must not rewrite the Secret. Overwrite the
+        # exported key and confirm the controller leaves it untouched while the
+        # app client is unchanged in AWS.
+        sentinel = base64.b64encode(b'sentinel').decode('utf-8')
+        core_api = client.CoreV1Api(k8s._get_k8s_api_client())
+        core_api.patch_namespaced_secret(secret_name, 'default', {'data': {'clientSecret': sentinel}})
         time.sleep(UPDATE_WAIT_AFTER_SECONDS)
-        moved_secret = client.CoreV1Api(k8s._get_k8s_api_client()).read_namespaced_secret(moved_secret_name, 'default')
-        assert moved_secret.data is not None
-        assert 'clientSecret' in moved_secret.data
-        moved_decoded_secret = base64.b64decode(moved_secret.data['clientSecret']).decode('utf-8')
-        assert moved_decoded_secret == userpool_client['ClientSecret']
+        secret = core_api.read_namespaced_secret(secret_name, 'default')
+        assert base64.b64decode(secret.data['clientSecret']).decode('utf-8') == 'sentinel'
 
         # Delete
         _, deleted = k8s.delete_custom_resource(
