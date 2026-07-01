@@ -6,7 +6,6 @@ ignore:
       - Group
       - IdentityProvider
       - ManagedLoginBranding
-      - ResourceServer
       - UserImportJob
       - UserPoolClient
       - UserPoolDomain
@@ -48,3 +47,19 @@ resources:
         template_path: hooks/user_pool/sdk_read_one_post_set_output.go.tpl
       sdk_update_pre_build_request:
         template_path: hooks/user_pool/sdk_update_pre_build_request.go.tpl
+  ResourceServer:
+    exceptions:
+      terminal_codes:
+        - InvalidParameterException
+    tags:
+      ignore: true
+    fields:
+      Identifier:
+        is_primary_key: true
+        is_immutable: true
+      UserPoolId:
+        is_immutable: true
+        is_required: true
+        references:
+          resource: UserPool
+          path: Status.ID

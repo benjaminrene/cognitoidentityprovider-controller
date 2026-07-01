@@ -514,13 +514,27 @@ type RecoveryOptionType struct {
 	Priority *int64  `json:"priority,omitempty"`
 }
 
+// One custom scope associated with a user pool resource server. This data type
+// is a member of ResourceServerScopeType. For more information, see Scopes,
+// M2M, and API authorization with resource servers (https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-define-resource-servers.html).
+//
+// This data type is a request parameter of CreateResourceServer (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateResourceServer.html)
+// and a response parameter of DescribeResourceServer (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeResourceServer.html).
+type ResourceServerScopeType struct {
+	ScopeDescription *string `json:"scopeDescription,omitempty"`
+	ScopeName        *string `json:"scopeName,omitempty"`
+}
+
 // The details of a resource server configuration and associated custom scopes
 // in a user pool.
 //
 // This data type is a request parameter of CreateResourceServer (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateResourceServer.html)
 // and a response parameter of DescribeResourceServer (https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_DescribeResourceServer.html).
 type ResourceServerType struct {
-	UserPoolID *string `json:"userPoolID,omitempty"`
+	Identifier *string                    `json:"identifier,omitempty"`
+	Name       *string                    `json:"name,omitempty"`
+	Scopes     []*ResourceServerScopeType `json:"scopes,omitempty"`
+	UserPoolID *string                    `json:"userPoolID,omitempty"`
 }
 
 // The settings of risk configuration for threat protection with advanced security

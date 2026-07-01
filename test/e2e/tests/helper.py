@@ -35,3 +35,16 @@ class CognitoValidator:
             return response['Tags']
         except self.cognitoidentityprovider_client.exceptions.ResourceNotFoundException:
             return None
+
+    def get_resource_server(self, user_pool_id, identifier):
+        try:
+            response = self.cognitoidentityprovider_client.describe_resource_server(
+                UserPoolId=user_pool_id,
+                Identifier=identifier,
+            )
+            return response['ResourceServer']
+        except self.cognitoidentityprovider_client.exceptions.ResourceNotFoundException:
+            return None
+
+    def resource_server_exists(self, user_pool_id, identifier):
+        return self.get_resource_server(user_pool_id, identifier) is not None
