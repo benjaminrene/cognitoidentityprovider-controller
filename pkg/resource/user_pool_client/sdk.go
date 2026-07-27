@@ -249,7 +249,12 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
-	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient, r.ko.Status.LastModifiedDate); err != nil {
+	// In steady state the key is only filled when it is missing or empty, so the
+	// controller does not fight another writer of a Secret it does not own. When
+	// the target moved -- the reference was re-pointed, or the resource was
+	// adopted and never exported -- the key holds a value that is not ours and
+	// is replaced instead.
+	if err = rm.exportClientSecret(ctx, ko, resp.UserPoolClient, exportTargetMoved(ko)); err != nil {
 		return &resource{ko}, err
 	}
 
@@ -469,7 +474,9 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
-	if err = rm.EventuallyExportSecret(ctx, ko, resp.UserPoolClient, nil); err != nil {
+	// The app client was just created, so its secret has never been exported and
+	// whatever the target Secret currently holds has to be replaced.
+	if err = rm.exportClientSecret(ctx, ko, resp.UserPoolClient, true); err != nil {
 		return &resource{ko}, err
 	}
 
@@ -625,6 +632,19 @@ func (rm *resourceManager) sdkUpdate(
 	defer func() {
 		exit(err)
 	}()
+	if !delta.DifferentExcept("Spec.ExportClientSecret") {
+		// Only the export target moved. sdkFind already wrote the client secret
+		// to the new Secret earlier in this same reconcile, and Cognito has
+		// nothing to update, so the API call is skipped. Returning a copy of
+		// desired rather than desired itself is what makes the runtime persist
+		// the annotation: patchResourceMetadataAndSpec diffs the resource
+		// returned here against desired, and an identical object is not patched.
+		ko := desired.ko.DeepCopy()
+		carryExportTarget(ko, latest.ko)
+		ko.Status = *latest.ko.Status.DeepCopy()
+		return &resource{ko}, nil
+	}
+
 	input, err := rm.newUpdateRequestPayload(ctx, desired, delta)
 	if err != nil {
 		return nil, err
@@ -799,6 +819,11 @@ func (rm *resourceManager) sdkUpdate(
 	}
 
 	rm.setStatusDefaults(ko)
+	// Carry over the export target recorded by sdkFind earlier in this
+	// reconcile. The runtime patches CR metadata on the update path, which is
+	// how the annotation reaches etcd.
+	carryExportTarget(ko, latest.ko)
+
 	return &resource{ko}, nil
 }
 

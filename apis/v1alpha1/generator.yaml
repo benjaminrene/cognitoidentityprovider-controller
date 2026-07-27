@@ -57,10 +57,16 @@ resources:
     tags:
       ignore: true
     hooks:
+      delta_pre_compare:
+        template_path: hooks/user_pool_client/delta_pre_compare.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/user_pool_client/sdk_create_post_set_output.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/user_pool_client/sdk_read_one_post_set_output.go.tpl
+      sdk_update_pre_build_request:
+        template_path: hooks/user_pool_client/sdk_update_pre_build_request.go.tpl
+      sdk_update_post_set_output:
+        template_path: hooks/user_pool_client/sdk_update_post_set_output.go.tpl
     renames:
       operations:
         CreateUserPoolClient:
@@ -93,3 +99,9 @@ resources:
       ExportClientSecret:
         type: string
         is_secret: true
+        # The field has no AWS counterpart, so sdkFind copies it verbatim from
+        # desired into latest and the generated comparison can never fire.
+        # compareExportClientSecret in the delta_pre_compare hook compares the
+        # declared target against the one recorded on the CR instead.
+        compare:
+          is_ignored: true

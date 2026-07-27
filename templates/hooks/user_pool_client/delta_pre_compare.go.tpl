@@ -1,0 +1,1 @@
+	compareExportClientSecret(delta, a, b)

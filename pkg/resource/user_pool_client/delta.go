@@ -41,6 +41,7 @@ func newResourceDelta(
 		delta.Add("", a, b)
 		return delta
 	}
+	compareExportClientSecret(delta, a, b)
 
 	if ackcompare.HasNilDifference(a.ko.Spec.AccessTokenValidity, b.ko.Spec.AccessTokenValidity) {
 		delta.Add("Spec.AccessTokenValidity", a.ko.Spec.AccessTokenValidity, b.ko.Spec.AccessTokenValidity)
@@ -149,13 +150,6 @@ func newResourceDelta(
 	} else if len(a.ko.Spec.ExplicitAuthFlows) > 0 {
 		if !ackcompare.SliceStringPEqual(a.ko.Spec.ExplicitAuthFlows, b.ko.Spec.ExplicitAuthFlows) {
 			delta.Add("Spec.ExplicitAuthFlows", a.ko.Spec.ExplicitAuthFlows, b.ko.Spec.ExplicitAuthFlows)
-		}
-	}
-	if ackcompare.HasNilDifference(a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret) {
-		delta.Add("Spec.ExportClientSecret", a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret)
-	} else if a.ko.Spec.ExportClientSecret != nil && b.ko.Spec.ExportClientSecret != nil {
-		if *a.ko.Spec.ExportClientSecret != *b.ko.Spec.ExportClientSecret {
-			delta.Add("Spec.ExportClientSecret", a.ko.Spec.ExportClientSecret, b.ko.Spec.ExportClientSecret)
 		}
 	}
 	if ackcompare.HasNilDifference(a.ko.Spec.GenerateSecret, b.ko.Spec.GenerateSecret) {

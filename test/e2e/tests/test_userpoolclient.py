@@ -32,6 +32,10 @@ CREATE_WAIT_AFTER_SECONDS = 10
 UPDATE_WAIT_AFTER_SECONDS = 10
 DELETE_WAIT_AFTER_SECONDS = 10
 
+# Records the Secret the client secret was last written to. The controller uses
+# it to tell a target it has already exported to from one it has not.
+EXPORTED_TO_ANNOTATION = 'cognitoidentityprovider.services.k8s.aws/client-secret-exported-to'
+
 @pytest.fixture(scope='module')
 def simple_userpool(cognitoidentityprovider_client):
     userpool_name = random_suffix_name("userpool", 16)
@@ -146,6 +150,10 @@ def simple_userpoolclient_withexport(cognitoidentityprovider_client, user_pool_f
     user_pool_id = user_pool_for_client
     secret_name = random_suffix_name("userpoolclient-secret", 27)
     k8s.create_opaque_secret('default', secret_name, "key", "value")
+    # Second, initially unrelated Secret, used to check that re-pointing
+    # spec.exportClientSecret writes the client secret to the new target.
+    alt_secret_name = random_suffix_name("userpoolclient-secret-alt", 31)
+    k8s.create_opaque_secret('default', alt_secret_name, "key", "value")
 
     userpoolclient_name = random_suffix_name("userpoolclient", 24)
     replacements = REPLACEMENT_VALUES.copy()
@@ -160,8 +168,32 @@ def simple_userpoolclient_withexport(cognitoidentityprovider_client, user_pool_f
     )
 
     for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
-        yield (ref, cr, user_pool_id, secret_name)
-    # Delete k8s secret
+        yield (ref, cr, user_pool_id, secret_name, alt_secret_name)
+    # Delete k8s secrets
+    k8s.delete_secret('default', secret_name)
+    k8s.delete_secret('default', alt_secret_name)
+
+@pytest.fixture(scope='module')
+def userpoolclient_export_without_secret(cognitoidentityprovider_client, user_pool_for_client):
+    """An app client asking for an export but created without generateSecret."""
+    user_pool_id = user_pool_for_client
+    secret_name = random_suffix_name("userpoolclient-nosecret", 29)
+    k8s.create_opaque_secret('default', secret_name, "key", "value")
+
+    userpoolclient_name = random_suffix_name("userpoolclient", 24)
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements['USERPOOLCLIENT_NAME'] = userpoolclient_name
+    replacements['USERPOOL_ID'] = user_pool_id
+    replacements['USERPOOLCLIENT_SECRET_KEY'] = 'clientSecret'
+    replacements['USERPOOLCLIENT_SECRET_NAME'] = secret_name
+
+    resource_data = load_cognitoidentityprovider_resource(
+        'userpoolclient_export_without_secret',
+        additional_replacements=replacements,
+    )
+
+    for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
+        yield (ref, cr, secret_name)
     k8s.delete_secret('default', secret_name)
 
 @service_marker
@@ -250,7 +282,7 @@ class TestUserPoolClient():
     def test_create_delete_simple_userpoolclient_withexport(
         self, simple_userpoolclient_withexport, cognitoidentityprovider_client
     ):
-        (ref, cr, user_pool_id, secret_name) = simple_userpoolclient_withexport
+        (ref, cr, user_pool_id, secret_name, alt_secret_name) = simple_userpoolclient_withexport
         assert cr is not None
         assert 'spec' in cr
         assert 'name' in cr['spec']
@@ -270,24 +302,86 @@ class TestUserPoolClient():
         assert 'ALLOW_USER_SRP_AUTH' in aws_client['ExplicitAuthFlows']
         assert 'ALLOW_REFRESH_TOKEN_AUTH' in aws_client['ExplicitAuthFlows']
 
-        # Verify the client secret was exported to the K8s Secret
-        secret = client.CoreV1Api(k8s._get_k8s_api_client()).read_namespaced_secret(secret_name, 'default')
-        assert secret.data is not None
-        assert 'clientSecret' in secret.data
-        decoded_secret = base64.b64decode(secret.data['clientSecret']).decode('utf-8')
-        userpool_client = validator.get_user_pool_client(user_pool_id, client_id)
-        assert decoded_secret == userpool_client['ClientSecret']
-
-        # The export is event-driven (keyed on the app client's LastModifiedDate),
-        # so a steady-state reconcile must not rewrite the Secret. Overwrite the
-        # exported key and confirm the controller leaves it untouched while the
-        # app client is unchanged in AWS.
-        sentinel = base64.b64encode(b'sentinel').decode('utf-8')
         core_api = client.CoreV1Api(k8s._get_k8s_api_client())
+        custom_api = client.CustomObjectsApi(k8s._get_k8s_api_client())
+        cr_name = cr['metadata']['name']
+
+        def read_exported_key(name):
+            secret = core_api.read_namespaced_secret(name, 'default')
+            if secret.data is None or 'clientSecret' not in secret.data:
+                return None
+            return base64.b64decode(secret.data['clientSecret']).decode('utf-8')
+
+        def read_export_annotation():
+            latest = custom_api.get_namespaced_custom_object(
+                CRD_GROUP, CRD_VERSION, 'default', RESOURCE_PLURAL, cr_name,
+            )
+            return latest['metadata'].get('annotations', {}).get(EXPORTED_TO_ANNOTATION)
+
+        client_secret = validator.get_user_pool_client(user_pool_id, client_id)['ClientSecret']
+
+        # Creating the app client exports its secret, and records where it went.
+        assert read_exported_key(secret_name) == client_secret
+        assert read_export_annotation() == f'default/{secret_name}/clientSecret'
+
+        # Steady state: the controller does not own the Secret, so once the key
+        # holds a value it leaves it alone. Overwrite the key and confirm it is
+        # not reverted while nothing about the export target has changed.
+        sentinel = base64.b64encode(b'sentinel').decode('utf-8')
         core_api.patch_namespaced_secret(secret_name, 'default', {'data': {'clientSecret': sentinel}})
         time.sleep(UPDATE_WAIT_AFTER_SECONDS)
-        secret = core_api.read_namespaced_secret(secret_name, 'default')
-        assert base64.b64decode(secret.data['clientSecret']).decode('utf-8') == 'sentinel'
+        assert read_exported_key(secret_name) == 'sentinel'
+
+        # A missing key is refilled on the next reconcile, which covers the
+        # Secret being deleted and recreated or the key being dropped, without
+        # the controller having to rewrite it every time.
+        #
+        # The controller watches its own resources with a GenerationChanged
+        # predicate and never watches Secrets, so editing the Secret triggers
+        # nothing on its own: the reconcile has to be provoked with a spec
+        # change here rather than waited for, since the resync period is 10
+        # hours by default.
+        core_api.patch_namespaced_secret(secret_name, 'default', {'data': {'clientSecret': None}})
+        assert read_exported_key(secret_name) is None
+        k8s.patch_custom_resource(ref, {'spec': {'authSessionValidity': 5}})
+        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+        assert read_exported_key(secret_name) == client_secret
+
+        # Re-pointing spec.exportClientSecret writes the client secret to the new
+        # Secret and moves the recorded target with it. The reference has no AWS
+        # counterpart, so this is driven by the synthetic delta rather than by any
+        # difference the generated comparison could observe.
+        assert read_exported_key(alt_secret_name) is None
+        k8s.patch_custom_resource(ref, {
+            'spec': {
+                'exportClientSecret': {
+                    'name': alt_secret_name,
+                    'key': 'clientSecret',
+                },
+            },
+        })
+        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+        assert read_exported_key(alt_secret_name) == client_secret
+        assert read_export_annotation() == f'default/{alt_secret_name}/clientSecret'
+
+        # The former target is left as it was: the controller does not clean up a
+        # Secret it no longer references.
+        assert read_exported_key(secret_name) == client_secret
+
+        # Re-pointing at a target that already holds a value still replaces it,
+        # because that value was not written for this resource.
+        core_api.patch_namespaced_secret(secret_name, 'default', {'data': {'clientSecret': sentinel}})
+        k8s.patch_custom_resource(ref, {
+            'spec': {
+                'exportClientSecret': {
+                    'name': secret_name,
+                    'key': 'clientSecret',
+                },
+            },
+        })
+        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+        assert read_exported_key(secret_name) == client_secret
+        assert read_export_annotation() == f'default/{secret_name}/clientSecret'
 
         # Delete
         _, deleted = k8s.delete_custom_resource(
@@ -297,4 +391,45 @@ class TestUserPoolClient():
         assert deleted
 
         assert not validator.user_pool_client_exists(user_pool_id, client_id)
+
+    def test_export_without_generate_secret_is_terminal(
+        self, userpoolclient_export_without_secret
+    ):
+        """An export that can never succeed must say so instead of looking synced.
+
+        generateSecret is immutable, so an app client created without one will
+        never have a secret to export. Reconciling cannot fix it, and the
+        resource must not keep reporting itself as synced while the target
+        Secret stays empty.
+        """
+        (ref, cr, secret_name) = userpoolclient_export_without_secret
+        core_api = client.CoreV1Api(k8s._get_k8s_api_client())
+        custom_api = client.CustomObjectsApi(k8s._get_k8s_api_client())
+        cr_name = cr['metadata']['name']
+
+        def read_condition(cond_type):
+            latest = custom_api.get_namespaced_custom_object(
+                CRD_GROUP, CRD_VERSION, 'default', RESOURCE_PLURAL, cr_name,
+            )
+            for cond in latest.get('status', {}).get('conditions', []):
+                if cond['type'] == cond_type:
+                    return cond
+            return None
+
+        terminal = read_condition('ACK.Terminal')
+        assert terminal is not None
+        assert terminal['status'] == 'True'
+        assert 'generateSecret' in terminal['message']
+
+        # Nothing was written to the target Secret.
+        secret = core_api.read_namespaced_secret(secret_name, 'default')
+        assert 'clientSecret' not in (secret.data or {})
+
+        # Dropping the export request clears the terminal condition: the app
+        # client itself is fine, only the export was impossible.
+        k8s.patch_custom_resource(ref, {'spec': {'exportClientSecret': None}})
+        time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+
+        terminal = read_condition('ACK.Terminal')
+        assert terminal is None or terminal['status'] == 'False'
 
