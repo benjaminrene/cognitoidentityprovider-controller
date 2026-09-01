@@ -18,6 +18,7 @@ import time
 
 import pytest
 from acktest.k8s import resource as k8s
+from acktest.k8s import condition
 from acktest.resources import random_suffix_name
 from e2e import CRD_GROUP, CRD_VERSION, load_cognitoidentityprovider_resource, service_marker
 from e2e.replacement_values import REPLACEMENT_VALUES
@@ -119,6 +120,8 @@ class TestResourceServer():
         assert cr['spec']['identifier'] == identifier
         assert 'name' in cr['spec']
 
+        assert k8s.wait_on_condition(ref, condition.CONDITION_TYPE_RESOURCE_SYNCED, "True", wait_periods=5)
+
         # Verify the resource exists in AWS
         validator = CognitoValidator(cognitoidentityprovider_client)
         assert validator.resource_server_exists(user_pool_id, identifier)
@@ -146,6 +149,8 @@ class TestResourceServer():
         }
         k8s.patch_custom_resource(ref, updates)
         time.sleep(UPDATE_WAIT_AFTER_SECONDS)
+
+        assert k8s.wait_on_condition(ref, condition.CONDITION_TYPE_RESOURCE_SYNCED, "True", wait_periods=5)
 
         # Verify update in AWS
         aws_rs = validator.get_resource_server(user_pool_id, identifier)
