@@ -72,6 +72,7 @@ rules:
 - apiGroups:
   - cognitoidentityprovider.services.k8s.aws
   resources:
+  - resourceservers
   - userpools
   verbs:
   - create
@@ -84,6 +85,7 @@ rules:
 - apiGroups:
   - cognitoidentityprovider.services.k8s.aws
   resources:
+  - resourceservers/status
   - userpools/status
   verbs:
   - get

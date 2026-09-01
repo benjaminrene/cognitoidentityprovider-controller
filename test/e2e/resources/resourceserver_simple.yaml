@@ -1,0 +1,13 @@
+apiVersion: cognitoidentityprovider.services.k8s.aws/v1alpha1
+kind: ResourceServer
+metadata:
+  name: $RESOURCE_SERVER_NAME
+spec:
+  identifier: $RESOURCE_SERVER_IDENTIFIER
+  name: $RESOURCE_SERVER_NAME
+  userPoolRef:
+    from:
+      name: $USERPOOL_NAME
+  scopes:
+    - scopeName: read
+      scopeDescription: Read access

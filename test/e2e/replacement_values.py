@@ -15,4 +15,5 @@ Cognito Identity Provider-specific test variables.
 """
 
 REPLACEMENT_VALUES = {
+    'USERPOOL_DELETION_PROTECTION': 'ACTIVE'
 }

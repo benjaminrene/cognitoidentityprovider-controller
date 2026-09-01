@@ -41,6 +41,7 @@ import (
 	svctypes "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/resource_server"
 	_ "github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/resource/user_pool"
 
 	"github.com/aws-controllers-k8s/cognitoidentityprovider-controller/pkg/version"
