@@ -141,29 +141,6 @@ def simple_userpoolclient_fromref(cognitoidentityprovider_client, simple_userpoo
     for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
         yield (ref, cr, userpool_cr['status']['id'])
 
-@pytest.fixture(scope='module')
-def simple_userpoolclient_withexport(cognitoidentityprovider_client, user_pool_for_client):
-    user_pool_id = user_pool_for_client
-    secret_name = random_suffix_name("userpoolclient-secret", 27)
-    k8s.create_opaque_secret('default', secret_name, "key", "value")
-
-    userpoolclient_name = random_suffix_name("userpoolclient", 24)
-    replacements = REPLACEMENT_VALUES.copy()
-    replacements['USERPOOLCLIENT_NAME'] = userpoolclient_name
-    replacements['USERPOOL_ID'] = user_pool_id
-    replacements['USERPOOLCLIENT_SECRET_KEY'] = 'clientSecret'
-    replacements['USERPOOLCLIENT_SECRET_NAME'] = secret_name
-
-    resource_data = load_cognitoidentityprovider_resource(
-        'userpoolclient_with_export',
-        additional_replacements=replacements,
-    )
-
-    for ref, cr in manage_userpoolclient_resource(userpoolclient_name, resource_data):
-        yield (ref, cr, user_pool_id, secret_name)
-    # Delete k8s secret
-    k8s.delete_secret('default', secret_name)
-
 @service_marker
 @pytest.mark.canary
 class TestUserPoolClient():
